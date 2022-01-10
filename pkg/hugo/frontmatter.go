@@ -3,8 +3,6 @@ package hugo
 import (
 	"io"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/gohugoio/hugo/parser/pageparser"
 )
@@ -25,7 +23,7 @@ type FrontMatter struct {
 	Author   string
 	Category string
 	Tags     []string
-	Date     time.Time
+	Date     string
 }
 
 // ParseFrontMatter parses the frontmatter of the specified Hugo content.
@@ -64,41 +62,11 @@ func parseFrontMatter(r io.Reader) (*FrontMatter, error) {
 	if fm.Tags, err = getAllStringItems(&cfm, fmTags); err != nil {
 		return nil, err
 	}
-	if fm.Date, err = getContentDate(&cfm); err != nil {
+	if fm.Date, err = getString(&cfm, fmDate); err != nil {
 		return nil, err
 	}
 
 	return fm, nil
-}
-
-func getContentDate(cfm *pageparser.ContentFrontMatter) (time.Time, error) {
-	for _, key := range []string{fmDate, fmLastmod, fmPublishDate} {
-		t, err := getTime(cfm, key)
-		if err != nil {
-			switch err.(type) {
-			case *FMNotExistError:
-				continue
-			}
-		}
-		return t, err
-	}
-	return time.Now(), NewFMNotExistError(
-		strings.Join([]string{fmDate, fmLastmod, fmPublishDate}, ", "))
-}
-
-func getTime(cfm *pageparser.ContentFrontMatter, fmKey string) (time.Time, error) {
-	v, ok := cfm.FrontMatter[fmKey]
-	if !ok {
-		return time.Now(), NewFMNotExistError(fmKey)
-	}
-	switch t := v.(type) {
-	case string:
-		return time.Parse(time.RFC3339, t)
-	case time.Time:
-		return t, nil
-	default:
-		return time.Now(), NewFMInvalidTypeError(fmKey, "time.Time or string", t)
-	}
 }
 
 func getString(cfm *pageparser.ContentFrontMatter, fmKey string) (string, error) {
